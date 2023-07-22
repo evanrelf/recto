@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -6,7 +5,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -20,10 +18,8 @@ import Data.Functor.Identity (Identity (..))
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import GHC.OverloadedLabels (IsLabel (..))
+import GHC.Records (HasField (..))
 import GHC.TypeLits (Symbol, KnownSymbol)
-
-import qualified GHC.Records as Base
-import qualified GHC.Records.Compat as RecordHasField
 
 -- | Anonymous product type.
 data Product :: (k -> Type) -> [k] -> Type where
@@ -57,37 +53,28 @@ newtype Record r = MkRecord (Product Identity r)
 
 deriving stock instance Show (Product Identity r) => Show (Record r)
 
-instance {-# OVERLAPPING #-} Base.HasField n (Record (n ::: a : r)) a where
-  getField :: Record (n ::: a : r) -> a
-  getField (MkRecord (Cons (Identity (_ := a)) _)) = a
-
-instance Base.HasField n (Record r) a
-  => Base.HasField n (Record (any : r)) a where
-  getField :: Record (any : r) -> a
-  getField (MkRecord (Cons _ xs)) = Base.getField @n (MkRecord xs)
-
-instance {-# OVERLAPPING #-} KnownSymbol n
-  => RecordHasField.HasField n (Record (n ::: a : r)) a where
-  hasField :: Record (n ::: a : r) -> (a -> Record (n ::: a : r), a)
-  hasField r@(MkRecord (Cons _ xs)) =
-    ( \a -> MkRecord (Cons (Identity ((Field (Proxy @n)) := a)) xs)
-    , Base.getField @n r
-    )
-
-instance RecordHasField.HasField n (Record r) a
-  => RecordHasField.HasField n (Record (any : r)) a where
-  hasField :: Record (any : r) -> (a -> Record (any : r), a)
-  hasField (MkRecord (Cons x xs)) =
-    case RecordHasField.hasField @n (MkRecord xs) of
-      (s, a) -> (\a' -> case s a' of MkRecord p -> MkRecord (Cons x p), a)
-
 -- | Whether a record has a field.
 class RowHasField n r a | n r -> a where
   rowHasField :: Field n -> Record r -> (a -> Record r, a)
 
-instance RecordHasField.HasField n (Record r) a => RowHasField n r a where
-  rowHasField :: Field n -> Record r -> (a -> Record r, a)
-  rowHasField _ r = RecordHasField.hasField @n r
+instance {-# OVERLAPPING #-} KnownSymbol n
+  => RowHasField n (n ::: a : r) a where
+  rowHasField :: Field n -> Record (n ::: a : r) -> (a -> Record (n ::: a : r), a)
+  rowHasField _ r@(MkRecord (Cons _ xs)) =
+    ( \a -> MkRecord (Cons (Identity ((Field (Proxy @n)) := a)) xs)
+    , getField @n r
+    )
+
+instance RowHasField n r a
+  => RowHasField n (any : r) a where
+  rowHasField :: Field n -> Record (any : r) -> (a -> Record (any : r), a)
+  rowHasField n (MkRecord (Cons x xs)) =
+    case rowHasField n (MkRecord xs) of
+      (s, a) -> (\a' -> case s a' of MkRecord p -> MkRecord (Cons x p), a)
+
+instance (RowHasField n r a, KnownSymbol n) => HasField n (Record r) a where
+  getField :: Record r -> a
+  getField r = case rowHasField (Field (Proxy @n)) r of (_, a) -> a
 
 -- | Empty record.
 --

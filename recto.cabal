@@ -5,9 +5,7 @@ version: 0.1.0.0
 
 library
   hs-source-dirs: src
-  build-depends:
-    , base
-    , record-hasfield
+  build-depends: base
   default-language: Haskell2010
   ghc-options:
     -Wall
