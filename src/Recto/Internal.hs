@@ -54,27 +54,29 @@ newtype Record r = MkRecord (Product Identity r)
 deriving stock instance Show (Product Identity r) => Show (Record r)
 
 -- | Whether a record has a field.
-class RowHasField n r a | n r -> a where
-  rowHasField :: Field n -> Record r -> (a -> Record r, a)
+class RecordHasField n r a | n r -> a where
+  recordHasField :: Field n -> Record r -> (a -> Record r, a)
 
 instance {-# OVERLAPPING #-} KnownSymbol n
-  => RowHasField n (n ::: a : r) a where
-  rowHasField :: Field n -> Record (n ::: a : r) -> (a -> Record (n ::: a : r), a)
-  rowHasField _ r@(MkRecord (Cons _ xs)) =
+  => RecordHasField n (n ::: a : r) a where
+  recordHasField
+    :: Field n
+    -> Record (n ::: a : r) -> (a -> Record (n ::: a : r), a)
+  recordHasField _ r@(MkRecord (Cons _ xs)) =
     ( \a -> MkRecord (Cons (Identity ((Field (Proxy @n)) := a)) xs)
     , getField @n r
     )
 
-instance RowHasField n r a
-  => RowHasField n (any : r) a where
-  rowHasField :: Field n -> Record (any : r) -> (a -> Record (any : r), a)
-  rowHasField n (MkRecord (Cons x xs)) =
-    case rowHasField n (MkRecord xs) of
+instance RecordHasField n r a
+  => RecordHasField n (any : r) a where
+  recordHasField :: Field n -> Record (any : r) -> (a -> Record (any : r), a)
+  recordHasField n (MkRecord (Cons x xs)) =
+    case recordHasField n (MkRecord xs) of
       (s, a) -> (\a' -> case s a' of MkRecord p -> MkRecord (Cons x p), a)
 
-instance (RowHasField n r a, KnownSymbol n) => HasField n (Record r) a where
+instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
   getField :: Record r -> a
-  getField r = case rowHasField (Field (Proxy @n)) r of (_, a) -> a
+  getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
 
 -- | Empty record.
 --
@@ -103,8 +105,8 @@ insert n a (MkRecord p) = MkRecord $ Cons (Identity (n := a)) p
 -- example :: Record '["answer" ::: Int] -> Int
 -- example = get #answer
 -- :}
-get :: RowHasField n r a => Field n -> Record r -> a
-get n r = case rowHasField n r of (_, a) -> a
+get :: RecordHasField n r a => Field n -> Record r -> a
+get n r = case recordHasField n r of (_, a) -> a
 
 -- | Set field in record.
 --
@@ -114,8 +116,8 @@ get n r = case rowHasField n r of (_, a) -> a
 --   -> Record '["enabled" ::: Bool]
 -- example = set #enabled True
 -- :}
-set :: RowHasField n r a => Field n -> a -> Record r -> Record r
-set n a r = case rowHasField n r of (s, _) -> s a
+set :: RecordHasField n r a => Field n -> a -> Record r -> Record r
+set n a r = case recordHasField n r of (s, _) -> s a
 
 -- | Modify field in record.
 --
@@ -125,5 +127,5 @@ set n a r = case rowHasField n r of (s, _) -> s a
 --   -> Record '["enabled" ::: Bool]
 -- example = modify #enabled not
 -- :}
-modify :: RowHasField n r a => Field n -> (a -> a) -> Record r -> Record r
-modify n f r = case rowHasField n r of (s, a) -> s (f a)
+modify :: RecordHasField n r a => Field n -> (a -> a) -> Record r -> Record r
+modify n f r = case recordHasField n r of (s, a) -> s (f a)

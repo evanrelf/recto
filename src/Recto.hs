@@ -1,7 +1,7 @@
 module Recto
   ( Record
   , Field
-  , RowHasField
+  , RecordHasField
   , empty
   , insert
   , get
