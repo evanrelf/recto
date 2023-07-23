@@ -4,7 +4,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -14,22 +13,11 @@
 
 module Recto.Internal where
 
-import Data.Functor.Identity (Identity (..))
 import Data.Kind (Type)
 import Data.Proxy (Proxy (..))
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
 import GHC.TypeLits (Symbol, KnownSymbol)
-
--- | Anonymous product type.
-data Product :: (k -> Type) -> [k] -> Type where
-  Nil :: Product f '[]
-  Cons :: f x -> Product f xs -> Product f (x : xs)
-
-deriving stock instance Show (Product f '[])
-
-deriving stock instance (Show (f x), Show (Product f xs))
-  => Show (Product f (x : xs))
 
 -- | Record field. Construct using @-XOverloadedLabels@.
 --
@@ -45,13 +33,21 @@ deriving stock instance Show (Field n)
 instance (x ~ n, KnownSymbol n) => IsLabel x (Field n) where
   fromLabel = Field (Proxy @n)
 
-data (:::) n a = (:=) (Field n) a
+data n ::: a = Field n := a
   deriving stock (Show)
 
--- | Anonymous record.
-newtype Record r = MkRecord (Product Identity r)
+infix 6 :::, :=
 
-deriving stock instance Show (Product Identity r) => Show (Record r)
+-- | Anonymous record.
+data Record :: [Type] -> Type where
+  Nil :: Record '[]
+  (:>) :: x -> Record xs -> Record (x : xs)
+
+infixr 5 :>
+
+deriving stock instance Show (Record '[])
+
+deriving stock instance (Show x, Show (Record xs)) => Show (Record (x : xs))
 
 -- | Whether a record has a field.
 class RecordHasField n r a | n r -> a where
@@ -59,23 +55,14 @@ class RecordHasField n r a | n r -> a where
 
 instance {-# OVERLAPPING #-} KnownSymbol n
   => RecordHasField n (n ::: a : r) a where
-  recordHasField
-    :: Field n
-    -> Record (n ::: a : r) -> (a -> Record (n ::: a : r), a)
-  recordHasField _ r@(MkRecord (Cons _ xs)) =
-    ( \a -> MkRecord (Cons (Identity ((Field (Proxy @n)) := a)) xs)
-    , getField @n r
-    )
+  recordHasField n r@(_ :> xs) =
+    case recordHasField n r of (_, a) -> (\a' -> n := a' :> xs, a)
 
-instance RecordHasField n r a
-  => RecordHasField n (any : r) a where
-  recordHasField :: Field n -> Record (any : r) -> (a -> Record (any : r), a)
-  recordHasField n (MkRecord (Cons x xs)) =
-    case recordHasField n (MkRecord xs) of
-      (s, a) -> (\a' -> case s a' of MkRecord p -> MkRecord (Cons x p), a)
+instance RecordHasField n r a => RecordHasField n (any : r) a where
+  recordHasField n (x :> xs) =
+    case recordHasField n xs of (s, a) -> (\a' -> x :> s a', a)
 
 instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
-  getField :: Record r -> a
   getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
 
 -- | Empty record.
@@ -85,7 +72,7 @@ instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
 -- example = empty
 -- :}
 empty :: Record '[]
-empty = MkRecord Nil
+empty = Nil
 
 -- | Insert field into record.
 --
@@ -97,7 +84,7 @@ empty = MkRecord Nil
 --   $ empty
 -- :}
 insert :: Field n -> a -> Record r -> Record (n ::: a : r)
-insert n a (MkRecord p) = MkRecord $ Cons (Identity (n := a)) p
+insert n a r = n := a :> r
 
 -- | Get field from record.
 --
