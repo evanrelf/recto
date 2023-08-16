@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+if [ "$#" -ne 1 ]; then
+  echo "usage: ./generate-instances COUNT" >&2
+  exit 1
+fi
+
+count=$1
+
+for i in $(seq 0 "$count"); do
+  type=""
+  term=""
+  insert=""
+  if [ "$i" -gt 0 ]; then
+    echo ""
+    for j in $(seq 1 "$i"); do
+      if [ "$j" = 1 ]; then
+        type="n1 ::: a1"
+        term="n1 := a1"
+        insert=" insert n1 a1"
+      else
+        type="$type, n$j ::: a$j"
+        term="$term, n$j := a$j"
+        insert="$insert $ insert n$j a$j"
+      fi
+    done
+  fi
+  echo "instance RecordFromTuple ($type) '[$type] where"
+  echo "  recordFromTuple ($term) =${insert} empty"
+done

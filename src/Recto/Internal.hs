@@ -65,6 +65,22 @@ instance RecordHasField n r a => RecordHasField n (any : r) a where
 instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
 
+class RecordFromTuple t r | t -> r, r -> t where
+  recordFromTuple :: t -> Record r
+
+-- | Construct a record using tuple syntax.
+--
+-- >>> :{
+-- example :: Record '["greeting" ::: String, "answer" ::: Int]
+-- example =
+--   record
+--     ( #greeting := "Hello, world!"
+--     , #answer := 42
+--     )
+-- :}
+record :: RecordFromTuple t r => t -> Record r
+record = recordFromTuple
+
 -- | Empty record.
 --
 -- >>> :{
