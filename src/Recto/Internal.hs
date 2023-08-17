@@ -41,9 +41,9 @@ infix 6 :::, :=
 -- | Anonymous record.
 data Record :: [Type] -> Type where
   Nil :: Record '[]
-  (:>) :: x -> Record xs -> Record (x : xs)
+  Cons :: x -> Record xs -> Record (x : xs)
 
-infixr 5 :>
+infixr 5 `Cons`
 
 deriving stock instance Show (Record '[])
 
@@ -55,12 +55,12 @@ class RecordHasField n r a | n r -> a where
 
 instance {-# OVERLAPPING #-} KnownSymbol n
   => RecordHasField n (n ::: a : r) a where
-  recordHasField n r@(_ :> xs) =
-    case recordHasField n r of (_, a) -> (\a' -> n := a' :> xs, a)
+  recordHasField n r@(_ `Cons` xs) =
+    case recordHasField n r of (_, a) -> (\a' -> n := a' `Cons` xs, a)
 
 instance RecordHasField n r a => RecordHasField n (any : r) a where
-  recordHasField n (x :> xs) =
-    case recordHasField n xs of (s, a) -> (\a' -> x :> s a', a)
+  recordHasField n (x `Cons` xs) =
+    case recordHasField n xs of (s, a) -> (\a' -> x `Cons` s a', a)
 
 instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
@@ -100,7 +100,7 @@ empty = Nil
 --   $ empty
 -- :}
 insert :: Field n -> a -> Record r -> Record (n ::: a : r)
-insert n a r = n := a :> r
+insert n a r = n := a `Cons` r
 
 -- | Get field from record.
 --
