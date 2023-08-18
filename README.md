@@ -1,6 +1,6 @@
 # recto
 
-Toy anonymous records
+Toy anonymous records. See [verso] for anonymous variants.
 
 ## Example
 
@@ -21,3 +21,5 @@ evan = record
 greet :: Person -> IO ()
 greet person = putStrLn $ "Hello, " <> person.firstName <> "!"
 ```
+
+[verso]: https://github.com/evanrelf/verso
