@@ -14,3 +14,4 @@ module Recto
 where
 
 import Recto.Internal
+import Recto.Internal.Instances ()
