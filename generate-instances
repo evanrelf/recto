@@ -14,20 +14,28 @@ for i in $(seq 0 "$count"); do
   type=""
   term=""
   insert=""
-  if [ "$i" -gt 0 ]; then
+  if [ "$i" -eq 0 ]; then
+    term="()"
+  elif [ "$i" -eq 1 ]; then
+    echo ""
+    type="n ::: a"
+    term="x"
+    insert=" x \`RCons\`"
+  else
     echo ""
     for j in $(seq 1 "$i"); do
       if [ "$j" = 1 ]; then
         type="n1 ::: a1"
-        term="n1 := a1"
-        insert=" insert n1 a1"
+        term="(x1"
+        insert=" x1 \`RCons\`"
       else
         type="$type, n$j ::: a$j"
-        term="$term, n$j := a$j"
-        insert="$insert $ insert n$j a$j"
+        term="$term, x$j"
+        insert="$insert x$j \`RCons\`"
       fi
     done
+    term="$term)"
   fi
   echo "instance RecordFromTuple ($type) '[$type] where"
-  echo "  recordFromTuple ($term) =${insert} empty"
+  echo "  recordFromTuple $term =${insert} RNil"
 done
