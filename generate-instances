@@ -3,12 +3,17 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -gt 1 ]; then
   echo "usage: ./generate-instances COUNT" >&2
   exit 1
 fi
 
-count=$1
+count=${1:-64}
+
+if [ "$count" -gt 64 ]; then
+  echo "error: GHC only supports tuples up to size 64" >&2
+  exit 1
+fi
 
 for i in $(seq 0 "$count"); do
   type=""
