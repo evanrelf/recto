@@ -1,7 +1,7 @@
 module Recto
   ( Record
   , (:::) (..)
-  , Field
+  , Field (..)
   , RecordHasField
   , RecordFromTuple
   , record
