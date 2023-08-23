@@ -31,31 +31,33 @@ import Recto.Internal
 "
 
 for i in $(seq 0 "$count"); do
-  type=""
-  term=""
-  insert=""
   if [ "$i" -eq 0 ]; then
-    term="()"
+    echo "instance RecordFromTuple () '[] where"
+    echo "  recordFromTuple () = RNil"
   elif [ "$i" -eq 1 ]; then
     echo ""
-    type="n ::: a"
-    term="x"
-    insert=" x \`RCons\`"
+    echo "instance RecordFromTuple (n ::: a) '[n ::: a] where"
+    echo "  recordFromTuple x = x \`RCons\` RNil"
   else
-    echo ""
+    type=""
+    tuple=""
+    record=""
     for j in $(seq 1 "$i"); do
       if [ "$j" = 1 ]; then
         type="n1 ::: a1"
-        term="(x1"
-        insert=" x1 \`RCons\`"
+        tuple="x1"
+        record="x1 \`RCons\`"
       else
         type="$type, n$j ::: a$j"
-        term="$term, x$j"
-        insert="$insert x$j \`RCons\`"
+        tuple="$tuple, x$j"
+        record="$record x$j \`RCons\`"
+      fi
+      if [ "$j" -eq "$i" ]; then
+        record="$record RNil"
       fi
     done
-    term="$term)"
+    echo ""
+    echo "instance RecordFromTuple ($type) '[$type] where"
+    echo "  recordFromTuple ($tuple) =$record"
   fi
-  echo "instance RecordFromTuple ($type) '[$type] where"
-  echo "  recordFromTuple $term =${insert} RNil"
 done
