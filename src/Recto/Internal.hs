@@ -1,23 +1,27 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Recto.Internal where
 
-import Data.Kind (Type)
+import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy (..))
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
-import GHC.TypeLits (Symbol, KnownSymbol)
+import GHC.TypeLits (KnownSymbol, Symbol)
 
 -- | Record field name. Construct using @-XOverloadedLabels@.
 --
@@ -65,6 +69,26 @@ instance RecordHasField n a r => RecordHasField n a (x : r) where
 instance (RecordHasField n a r, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (FieldName (Proxy @n)) r of (_, a) -> a
 
+-- | Whether a record has one or more fields.
+--
+-- >>> :{
+-- fullName
+--   :: RecordHasFields ["firstName" ::: String, "lastName" ::: String] r
+--   => Record r
+--   -> String
+-- fullName r = r.firstName <> " " <> r.lastName
+-- >>>
+type RecordHasFields :: k -> [Type] -> Constraint
+type family RecordHasFields fs r where
+  RecordHasFields '[] r = ()
+  RecordHasFields (n ::: a) r = RecordHasField n a r
+  RecordHasFields [n ::: a] r = RecordHasField n a r
+  RecordHasFields (n ::: a : fs) r = (RecordHasField n a r, RecordHasFields fs r)
+
+type fs :| r = RecordHasFields fs r
+
+infixl 1 :|
+
 class RecordFromTuple t r | t -> r, r -> t where
   tupleToRecord :: t -> Record r
   recordToTuple :: Record r -> t
@@ -110,7 +134,7 @@ insert n a r = n := a `RCons` r
 -- example :: Record '["answer" ::: Int] -> Int
 -- example = get #answer
 -- :}
-get :: RecordHasField n a r => FieldName n -> Record r -> a
+get :: n ::: a :| r => FieldName n -> Record r -> a
 get n r = case recordHasField n r of (_, a) -> a
 
 -- | Set field in record.
@@ -121,7 +145,7 @@ get n r = case recordHasField n r of (_, a) -> a
 --   -> Record '["enabled" ::: Bool]
 -- example = set #enabled True
 -- :}
-set :: RecordHasField n a r => FieldName n -> a -> Record r -> Record r
+set :: n ::: a :| r => FieldName n -> a -> Record r -> Record r
 set n a r = case recordHasField n r of (s, _) -> s a
 
 -- | Modify field in record.
@@ -132,5 +156,5 @@ set n a r = case recordHasField n r of (s, _) -> s a
 --   -> Record '["enabled" ::: Bool]
 -- example = modify #enabled not
 -- :}
-modify :: RecordHasField n a r => FieldName n -> (a -> a) -> Record r -> Record r
+modify :: n ::: a :| r => FieldName n -> (a -> a) -> Record r -> Record r
 modify n f r = case recordHasField n r of (s, a) -> s (f a)

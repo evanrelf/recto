@@ -3,6 +3,8 @@ module Recto
   , (:::) (..)
   , FieldName (..)
   , RecordHasField
+  , RecordHasFields
+  , (:|)
   , record
   , empty
   , insert
