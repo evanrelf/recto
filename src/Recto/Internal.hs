@@ -103,7 +103,8 @@ empty = RNil
 insert :: Field n -> a -> Record r -> Record (n ::: a : r)
 insert n a r = n := a `RCons` r
 
--- | Get field from record.
+-- | Get field from record. Using @-XOverloadedRecordDot@ is recommended over
+-- using `get`.
 --
 -- >>> :{
 -- example :: Record '["answer" ::: Int] -> Int
