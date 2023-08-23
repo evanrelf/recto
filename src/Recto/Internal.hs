@@ -37,6 +37,7 @@ deriving stock instance Show (FieldName n)
 instance (x ~ n, KnownSymbol n) => IsLabel x (FieldName n) where
   fromLabel = FieldName (Proxy @n)
 
+-- | Record field.
 data n ::: a = FieldName n := a
   deriving stock (Show)
 
@@ -82,15 +83,23 @@ type RecordHasFields :: k -> [Type] -> Constraint
 type family RecordHasFields fs r where
   RecordHasFields '[] r = ()
   RecordHasFields (n ::: a) r = RecordHasField n a r
+  -- Treat list types like type-level lists with one element.
   RecordHasFields [n ::: a] r = RecordHasField n a r
   RecordHasFields (n ::: a : fs) r = (RecordHasField n a r, RecordHasFields fs r)
 
+-- | Operator version of `RecordHasFields`.
 type fs :| r = RecordHasFields fs r
 
 infixl 1 :|
 
+-- | Convert between tuples and records. Enables construction of records using
+-- tuple syntax.
 class RecordFromTuple t r | t -> r, r -> t where
+  -- | Convert a tuple to a record. `record` is recommended over
+  -- `tupleToRecord`.
   tupleToRecord :: t -> Record r
+
+  -- | Convert a record to a tuple.
   recordToTuple :: Record r -> t
 
 -- | Construct a record using tuple syntax.
