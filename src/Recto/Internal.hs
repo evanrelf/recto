@@ -66,7 +66,8 @@ instance (RecordHasField n r a, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
 
 class RecordFromTuple t r | t -> r, r -> t where
-  recordFromTuple :: t -> Record r
+  tupleToRecord :: t -> Record r
+  recordToTuple :: Record r -> t
 
 -- | Construct a record using tuple syntax.
 --
@@ -79,7 +80,7 @@ class RecordFromTuple t r | t -> r, r -> t where
 --     )
 -- :}
 record :: RecordFromTuple t r => t -> Record r
-record = recordFromTuple
+record = tupleToRecord
 
 -- | Empty record.
 --

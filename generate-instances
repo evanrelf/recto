@@ -20,6 +20,7 @@ echo "\
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -33,11 +34,13 @@ import Recto.Internal
 for i in $(seq 0 "$count"); do
   if [ "$i" -eq 0 ]; then
     echo "instance RecordFromTuple () '[] where"
-    echo "  recordFromTuple () = RNil"
+    echo "  tupleToRecord () = RNil"
+    echo "  recordToTuple RNil = ()"
   elif [ "$i" -eq 1 ]; then
     echo ""
     echo "instance RecordFromTuple (n ::: a) '[n ::: a] where"
-    echo "  recordFromTuple x = x \`RCons\` RNil"
+    echo "  tupleToRecord x = x \`RCons\` RNil"
+    echo "  recordToTuple (x \`RCons\` RNil) = x"
   else
     type=""
     tuple=""
@@ -58,6 +61,7 @@ for i in $(seq 0 "$count"); do
     done
     echo ""
     echo "instance RecordFromTuple ($type) '[$type] where"
-    echo "  recordFromTuple ($tuple) =$record"
+    echo "  tupleToRecord ($tuple) = $record"
+    echo "  recordToTuple ($record) = ($tuple)"
   fi
 done
