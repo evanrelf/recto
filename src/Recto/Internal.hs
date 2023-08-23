@@ -19,21 +19,21 @@ import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
 import GHC.TypeLits (Symbol, KnownSymbol)
 
--- | Record field. Construct using @-XOverloadedLabels@.
+-- | Record field name. Construct using @-XOverloadedLabels@.
 --
 -- >>> :{
--- example :: Field "foo"
+-- example :: FieldName "foo"
 -- example = #foo
 -- :}
-data Field :: Symbol -> Type where
-  Field :: KnownSymbol n => Proxy n -> Field n
+data FieldName :: Symbol -> Type where
+  FieldName :: KnownSymbol n => Proxy n -> FieldName n
 
-deriving stock instance Show (Field n)
+deriving stock instance Show (FieldName n)
 
-instance (x ~ n, KnownSymbol n) => IsLabel x (Field n) where
-  fromLabel = Field (Proxy @n)
+instance (x ~ n, KnownSymbol n) => IsLabel x (FieldName n) where
+  fromLabel = FieldName (Proxy @n)
 
-data n ::: a = Field n := a
+data n ::: a = FieldName n := a
   deriving stock (Show)
 
 infix 6 :::, :=
@@ -51,7 +51,7 @@ deriving stock instance (Show x, Show (Record xs)) => Show (Record (x : xs))
 
 -- | Whether a record has a field.
 class RecordHasField n a r | n r -> a where
-  recordHasField :: Field n -> Record r -> (a -> Record r, a)
+  recordHasField :: FieldName n -> Record r -> (a -> Record r, a)
 
 instance {-# OVERLAPPING #-} KnownSymbol n
   => RecordHasField n a (n ::: a : r) where
@@ -63,7 +63,7 @@ instance RecordHasField n a r => RecordHasField n a (x : r) where
     case recordHasField n xs of (s, a) -> (\a' -> x `RCons` s a', a)
 
 instance (RecordHasField n a r, KnownSymbol n) => HasField n (Record r) a where
-  getField r = case recordHasField (Field (Proxy @n)) r of (_, a) -> a
+  getField r = case recordHasField (FieldName (Proxy @n)) r of (_, a) -> a
 
 class RecordFromTuple t r | t -> r, r -> t where
   tupleToRecord :: t -> Record r
@@ -100,7 +100,7 @@ empty = RNil
 --   $ insert #answer 42
 --   $ empty
 -- :}
-insert :: Field n -> a -> Record r -> Record (n ::: a : r)
+insert :: FieldName n -> a -> Record r -> Record (n ::: a : r)
 insert n a r = n := a `RCons` r
 
 -- | Get field from record. Using @-XOverloadedRecordDot@ is recommended over
@@ -110,7 +110,7 @@ insert n a r = n := a `RCons` r
 -- example :: Record '["answer" ::: Int] -> Int
 -- example = get #answer
 -- :}
-get :: RecordHasField n a r => Field n -> Record r -> a
+get :: RecordHasField n a r => FieldName n -> Record r -> a
 get n r = case recordHasField n r of (_, a) -> a
 
 -- | Set field in record.
@@ -121,7 +121,7 @@ get n r = case recordHasField n r of (_, a) -> a
 --   -> Record '["enabled" ::: Bool]
 -- example = set #enabled True
 -- :}
-set :: RecordHasField n a r => Field n -> a -> Record r -> Record r
+set :: RecordHasField n a r => FieldName n -> a -> Record r -> Record r
 set n a r = case recordHasField n r of (s, _) -> s a
 
 -- | Modify field in record.
@@ -132,5 +132,5 @@ set n a r = case recordHasField n r of (s, _) -> s a
 --   -> Record '["enabled" ::: Bool]
 -- example = modify #enabled not
 -- :}
-modify :: RecordHasField n a r => Field n -> (a -> a) -> Record r -> Record r
+modify :: RecordHasField n a r => FieldName n -> (a -> a) -> Record r -> Record r
 modify n f r = case recordHasField n r of (s, a) -> s (f a)

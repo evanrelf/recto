@@ -1,7 +1,7 @@
 module Recto
   ( Record
   , (:::) (..)
-  , Field (..)
+  , FieldName (..)
   , RecordHasField
   , record
   , empty
