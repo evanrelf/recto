@@ -3,15 +3,15 @@ module Recto
   , (:::) (..)
   , Field (..)
   , RecordHasField
-  , RecordFromTuple
   , record
   , empty
   , insert
   , get
   , set
   , modify
+  , module Recto.Tuple
   )
 where
 
 import Recto.Internal
-import Recto.Internal.Instances ()
+import Recto.Tuple

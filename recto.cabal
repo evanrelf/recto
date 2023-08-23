@@ -41,6 +41,7 @@ library
     Recto
     Recto.Internal
     Recto.Internal.Instances
+    Recto.Tuple
 
 test-suite test
   import:
