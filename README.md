@@ -25,8 +25,14 @@ evan = record
   , #likesDogs := True
   )
 
+fullName
+  :: ["firstName" ::: String, "lastName" ::: String] :| r
+  => Record r
+  -> String
+fullName r = r.firstName <> " " <> r.lastName
+
 greet :: Person -> IO ()
-greet person = putStrLn $ "Hello, " <> person.firstName <> "!"
+greet person = putStrLn $ "Hello, " <> fullName person <> "!"
 ```
 
 [verso]: https://github.com/evanrelf/verso
