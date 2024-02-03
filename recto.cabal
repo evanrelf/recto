@@ -37,6 +37,7 @@ common executable
 library
   import: common
   hs-source-dirs: src
+  build-depends: vector
   exposed-modules:
     Recto
     Recto.Internal

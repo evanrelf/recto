@@ -5,8 +5,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
@@ -19,9 +21,14 @@ module Recto.Internal where
 
 import Data.Kind (Constraint, Type)
 import Data.Proxy (Proxy (..))
+import Data.Vector (Vector)
+import Data.Vector qualified as Vector
+import GHC.Exts (Any)
 import GHC.OverloadedLabels (IsLabel (..))
 import GHC.Records (HasField (..))
 import GHC.TypeLits (KnownSymbol, Symbol)
+import Prelude hiding (any)
+import Unsafe.Coerce (unsafeCoerce)
 
 -- | Record field name. Construct using @-XOverloadedLabels@.
 --
@@ -44,7 +51,9 @@ data n ::: a = FieldName n := a
 infix 6 :::, :=
 
 -- | Anonymous record.
-data Record :: [Type] -> Type where
+type Record :: [Type] -> Type
+type role Record nominal
+newtype Record xs = Record (Vector Any)
 
 instance Show (Record '[]) where
   show = undefined
@@ -52,16 +61,48 @@ instance Show (Record '[]) where
 instance (Show x, Show (Record xs)) => Show (Record (x : xs)) where
   show = undefined
 
+-- class FieldIndex n a r | n r -> a where
+--   fieldIsHead :: FieldName n -> Record r -> Bool
+
+-- instance {-# OVERLAPPING #-} FieldIndex n a (n ::: a : r) where
+--   fieldIsHead _ _ = True
+
+-- instance FieldIndex n a r => FieldIndex n a (x : r) where
+--   fieldIsHead _ _ = False
+
+-- instance FieldIndex n a '[] => FieldIndex n a '[] where
+--   fieldIsHead _ _ = False
+
+-- fieldIndex :: FieldIndex n a r => FieldName n -> Record r -> Maybe Int
+-- fieldIndex = go 0
+--   where
+--   go :: Int -> FieldName n -> Record r -> Maybe Int
+--   go i n r@(Record v)
+--     | Vector.null v = Nothing
+--     | fieldIsHead n r = Just i
+--     | otherwise =
+--         let
+--           r' :: Record
+--         in
+--           go (i + 1) n r'
+
 -- | Whether a record has a field.
 class RecordHasField n a r | n r -> a where
   recordHasField :: FieldName n -> Record r -> (a -> Record r, a)
 
-instance {-# OVERLAPPING #-} KnownSymbol n
-  => RecordHasField n a (n ::: a : r) where
-  recordHasField = undefined
+instance {-# OVERLAPPING #-} RecordHasField n a (n ::: a : r) where
+  recordHasField _ (Record v) =
+    (\a' ->
+      let
+        any = (unsafeCoerce :: a -> Any) a'
+        updates = Vector.singleton (0, any)
+      in
+        Record (Vector.unsafeUpdate v updates)
+    , (unsafeCoerce :: Any -> a) (Vector.unsafeHead v)
+    )
 
 instance RecordHasField n a r => RecordHasField n a (x : r) where
-  recordHasField = undefined
+  recordHasField n (Record v) = undefined
 
 instance (RecordHasField n a r, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (FieldName (Proxy @n)) r of (_, a) -> a
@@ -118,7 +159,7 @@ record = tupleToRecord
 -- example = empty
 -- :}
 empty :: Record '[]
-empty = undefined
+empty = Record Vector.empty
 
 -- | Insert field into record.
 --
@@ -129,8 +170,8 @@ empty = undefined
 --   $ insert #answer 42
 --   $ empty
 -- :}
-insert :: FieldName n -> a -> Record r -> Record (n ::: a : r)
-insert = undefined
+insert :: forall n a r. FieldName n -> a -> Record r -> Record (n ::: a : r)
+insert _ a (Record v) = Record (Vector.cons ((unsafeCoerce :: a -> Any) a) v)
 
 -- | Get field from record. Using @-XOverloadedRecordDot@ is recommended over
 -- using `get`.
