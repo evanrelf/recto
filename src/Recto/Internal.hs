@@ -45,14 +45,12 @@ infix 6 :::, :=
 
 -- | Anonymous record.
 data Record :: [Type] -> Type where
-  RNil :: Record '[]
-  RCons :: x -> Record xs -> Record (x : xs)
 
-infixr 5 `RCons`
+instance Show (Record '[]) where
+  show = undefined
 
-deriving stock instance Show (Record '[])
-
-deriving stock instance (Show x, Show (Record xs)) => Show (Record (x : xs))
+instance (Show x, Show (Record xs)) => Show (Record (x : xs)) where
+  show = undefined
 
 -- | Whether a record has a field.
 class RecordHasField n a r | n r -> a where
@@ -60,12 +58,10 @@ class RecordHasField n a r | n r -> a where
 
 instance {-# OVERLAPPING #-} KnownSymbol n
   => RecordHasField n a (n ::: a : r) where
-  recordHasField n r@(_ `RCons` xs) =
-    case recordHasField n r of (_, a) -> (\a' -> n := a' `RCons` xs, a)
+  recordHasField = undefined
 
 instance RecordHasField n a r => RecordHasField n a (x : r) where
-  recordHasField n (x `RCons` xs) =
-    case recordHasField n xs of (s, a) -> (\a' -> x `RCons` s a', a)
+  recordHasField = undefined
 
 instance (RecordHasField n a r, KnownSymbol n) => HasField n (Record r) a where
   getField r = case recordHasField (FieldName (Proxy @n)) r of (_, a) -> a
@@ -122,7 +118,7 @@ record = tupleToRecord
 -- example = empty
 -- :}
 empty :: Record '[]
-empty = RNil
+empty = undefined
 
 -- | Insert field into record.
 --
@@ -134,7 +130,7 @@ empty = RNil
 --   $ empty
 -- :}
 insert :: FieldName n -> a -> Record r -> Record (n ::: a : r)
-insert n a r = n := a `RCons` r
+insert = undefined
 
 -- | Get field from record. Using @-XOverloadedRecordDot@ is recommended over
 -- using `get`.
