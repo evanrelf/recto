@@ -30,4 +30,4 @@ greet :: Person -> IO ()
 greet person = putStrLn $ "Hello, " <> fullName person <> "!"
 
 main :: IO ()
-main = pure ()
+main = greet evan

@@ -58,10 +58,8 @@ deriving stock instance (Show x, Show (Record xs)) => Show (Record (x : xs))
 class RecordHasField n a r | n r -> a where
   recordHasField :: FieldName n -> Record r -> (a -> Record r, a)
 
-instance {-# OVERLAPPING #-} KnownSymbol n
-  => RecordHasField n a (n ::: a : r) where
-  recordHasField n r@(_ `RCons` xs) =
-    case recordHasField n r of (_, a) -> (\a' -> n := a' `RCons` xs, a)
+instance {-# OVERLAPPING #-} RecordHasField n a (n ::: a : r) where
+  recordHasField _ (n := a `RCons` xs) = (\a' -> n := a' `RCons` xs, a)
 
 instance RecordHasField n a r => RecordHasField n a (x : r) where
   recordHasField n (x `RCons` xs) =
