@@ -1,6 +1,6 @@
 # recto
 
-Toy anonymous records.
+Simple anonymous records.
 
 ## Example
 

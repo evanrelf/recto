@@ -2,8 +2,8 @@ cabal-version: 2.2
 
 name:        recto
 version:     0.1.0.0
-synopsis:    Toy anonymous records
-description: Toy anonymous records
+synopsis:    Simple anonymous records
+description: Simple anonymous records
 author:      Evan Relf <evan@evanrelf.com>
 maintainer:  Evan Relf <evan@evanrelf.com>
 homepage:    https://github.com/evanrelf/recto
