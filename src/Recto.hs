@@ -1,6 +1,6 @@
 module Recto
   ( Record
-  , (:::) (..)
+  , (:::)
   , (.=)
   , FieldName (..)
   , RecordHasField

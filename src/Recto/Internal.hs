@@ -39,13 +39,14 @@ instance (x ~ n, KnownSymbol n) => IsLabel x (FieldName n) where
   fromLabel = FieldName (Proxy @n)
 
 -- | Record field.
-data n ::: a = FieldName n := a
+data n ::: a where
+  Field :: FieldName n -> a -> n ::: a
   deriving stock (Show)
 
-infix 6 :::, :=
+infix 6 :::
 
 (.=) :: forall n -> KnownSymbol n => a -> n ::: a
-(.=) n a = FieldName (Proxy @n) := a
+(.=) n a = Field (FieldName (Proxy @n)) a
 
 infix 6 .=
 
@@ -65,7 +66,7 @@ class RecordHasField n a r | n r -> a where
   recordHasField :: FieldName n -> Record r -> (a -> Record r, a)
 
 instance {-# OVERLAPPING #-} RecordHasField n a (n ::: a : r) where
-  recordHasField _ (n := a `RCons` xs) = (\a' -> n := a' `RCons` xs, a)
+  recordHasField _ (Field n a `RCons` xs) = (\a' -> Field n a' `RCons` xs, a)
 
 instance RecordHasField n a r => RecordHasField n a (x : r) where
   recordHasField n (x `RCons` xs) =
@@ -112,8 +113,8 @@ class RecordFromTuple t r | t -> r, r -> t where
 -- example :: Record '["greeting" ::: String, "answer" ::: Int]
 -- example =
 --   record
---     ( #greeting := "Hello, world!"
---     , #answer := 42
+--     ( "greeting" .= "Hello, world!"
+--     , "answer" .= 42
 --     )
 -- :}
 record :: RecordFromTuple t r => t -> Record r
@@ -138,7 +139,7 @@ empty = RNil
 --   $ empty
 -- :}
 insert :: FieldName n -> a -> Record r -> Record (n ::: a : r)
-insert n a r = n := a `RCons` r
+insert n a r = Field n a `RCons` r
 
 -- | Get field from record. Using @-XOverloadedRecordDot@ is recommended over
 -- using `get`.
