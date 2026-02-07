@@ -7,6 +7,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RequiredTypeArguments #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
@@ -42,6 +43,11 @@ data n ::: a = FieldName n := a
   deriving stock (Show)
 
 infix 6 :::, :=
+
+(.=) :: forall n -> KnownSymbol n => a -> n ::: a
+(.=) n a = FieldName (Proxy @n) := a
+
+infix 6 .=
 
 -- | Anonymous record.
 data Record :: [Type] -> Type where

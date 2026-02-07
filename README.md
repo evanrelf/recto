@@ -20,9 +20,9 @@ type Person = Record
 
 evan :: Person
 evan = record
-  ( #firstName := "Evan"
-  , #lastName := "Relf"
-  , #likesDogs := True
+  ( "firstName" .= "Evan"
+  , "lastName" .= "Relf"
+  , "likesDogs" .= True
   )
 
 fullName
